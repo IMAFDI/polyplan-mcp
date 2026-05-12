@@ -58,7 +58,7 @@ export function createServer(projectRoot: string): McpServer {
     "Start Round 1: Create an individual implementation plan for the given problem. Each model creates its own plan independently.",
     {
       problemDescription: z.string().describe("The problem or requirement to plan for"),
-      modelName: z.string().optional().describe("Explicit model name override (e.g., 'sonnet-4.6')"),
+      modelName: z.string().optional().describe("Your model name — ALWAYS pass this (e.g., 'sonnet4.6', 'gpt-4o', 'gemini2.5'). Without it the plan file will be named 'unknown'."),
       plan: z.string().describe("The implementation plan content created by the model"),
     },
     async (params, extra) => {
@@ -70,6 +70,7 @@ export function createServer(projectRoot: string): McpServer {
       });
 
       let text = "";
+      if (identity.modelWarning) text += identity.modelWarning + "\n\n";
       if (result.switchWarning) text += result.switchWarning + "\n\n";
       if (result.saved) text += `✅ Round 1 plan saved: ${result.saved}`;
       if (result.prompt) text += result.prompt;
@@ -96,7 +97,7 @@ export function createServer(projectRoot: string): McpServer {
     "polyplan_round2",
     "Start Round 2: Create a revised master plan after reviewing all other models' Round 1 plans. Requires at least 2 Round 1 plans.",
     {
-      modelName: z.string().optional().describe("Explicit model name override"),
+      modelName: z.string().optional().describe("Your model name — ALWAYS pass this (e.g., 'sonnet4.6', 'gpt-4o', 'gemini2.5'). Without it the plan file will be named 'unknown'."),
       plan: z.string().describe("The revised master plan content"),
     },
     async (params, extra) => {
@@ -107,7 +108,11 @@ export function createServer(projectRoot: string): McpServer {
       });
 
       if (result.error) return { content: [{ type: "text", text: `❌ ${result.error}` }] };
-      return { content: [{ type: "text", text: `✅ Round 2 plan saved: ${result.saved}` }] };
+
+      let text = "";
+      if (identity.modelWarning) text += identity.modelWarning + "\n\n";
+      text += `✅ Round 2 plan saved: ${result.saved}`;
+      return { content: [{ type: "text", text }] };
     }
   );
 
@@ -132,7 +137,7 @@ export function createServer(projectRoot: string): McpServer {
     "polyplan_final",
     "Start Final round: Synthesize ALL Round 1 + Round 2 plans into one implementable plan. Requires at least 1 Round 2 plan.",
     {
-      modelName: z.string().optional().describe("Explicit model name override"),
+      modelName: z.string().optional().describe("Your model name — ALWAYS pass this (e.g., 'opus4.6', 'gpt-4o'). Without it the plan file will be named 'unknown'."),
       plan: z.string().describe("The final synthesized plan content"),
     },
     async (params, extra) => {
@@ -143,7 +148,11 @@ export function createServer(projectRoot: string): McpServer {
       });
 
       if (result.error) return { content: [{ type: "text", text: `❌ ${result.error}` }] };
-      return { content: [{ type: "text", text: `✅ Final plan saved: ${result.saved}` }] };
+
+      let text = "";
+      if (identity.modelWarning) text += identity.modelWarning + "\n\n";
+      text += `✅ Final plan saved: ${result.saved}`;
+      return { content: [{ type: "text", text }] };
     }
   );
 

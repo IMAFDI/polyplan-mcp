@@ -58,12 +58,12 @@ export function sanitizeCliName(name: string): string {
  *
  * @param clientInfo - The MCP client info object from the protocol handshake
  * @param explicitModel - Optional model name explicitly provided by the user
- * @returns The detected caller identity
+ * @returns The detected caller identity, plus an optional warning string to surface in the tool response
  */
 export function detectCaller(
   clientInfo?: { name?: string; version?: string },
   explicitModel?: string
-): CallerIdentity {
+): CallerIdentity & { modelWarning?: string } {
   // Detect CLI tool from client info
   let cliTool = "unknown";
   if (clientInfo?.name) {
@@ -76,7 +76,14 @@ export function detectCaller(
     ? sanitizeModelName(explicitModel)
     : "unknown";
 
-  return { cliTool, modelName };
+  // Surface as a tool-response warning (console.warn goes to stderr which the model never sees)
+  const modelWarning = !explicitModel
+    ? `⚠  Model name not detected. Your plan will be saved as "${cliTool}-unknown.md".\n` +
+      `   To fix: pass the modelName parameter explicitly, e.g.:\n` +
+      `   "Call polyplan_round1 with modelName='sonnet4.6' and problem='...'"`
+    : undefined;
+
+  return { cliTool, modelName, modelWarning };
 }
 
 /**

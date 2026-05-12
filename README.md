@@ -75,6 +75,38 @@ PolyPlan connects to any tool supporting the Model Context Protocol (MCP):
 - **Windsurf**
 - **OpenCode**
 
+## CLI Tool Specific Usage
+
+### Always pass your model name
+PolyPlan saves plans using the model name in the filename (e.g., `round1-claudecode-sonnet4.6.md`). Auto-detection is not always possible, so **always pass `modelName` explicitly**:
+
+```
+Call the polyplan_round1 tool with modelName='sonnet4.6' and problem='...' and plan='...'
+```
+
+### OpenCode / Gemini
+OpenCode with Gemini models requires explicit tool invocation syntax. Use **"Call the tool"** instead of **"Use polyplan"**:
+
+| ❌ May not invoke the tool | ✅ Always invokes the tool |
+|---|---|
+| `Use polyplan round1 for this problem: ...` | `Call the polyplan_round1 tool with modelName='gemini2.5' and problem='...' and plan='...'` |
+| `Use polyplan to show status` | `Call the polyplan_status tool` |
+| `Use polyplan round2` | `Call the polyplan_round2_context tool, then call polyplan_round2` |
+
+The word **"Call"** forces direct MCP tool invocation in OpenCode/Gemini instead of a natural-language response.
+
+### Claude Code
+Claude Code auto-detects as `claudecode` but does not expose the active model name via MCP. Always pass `modelName` explicitly:
+```
+Call the polyplan_round1 tool with modelName='sonnet4.6' for this problem: ...
+```
+
+### GitHub Copilot (VS Code)
+Works with natural language. Still recommended to pass `modelName`:
+```
+Use polyplan round1 with modelName='sonnet4.6' for this problem: ...
+```
+
 ## Why Multi-Model Planning?
 Different models have different strengths, blind spots, and reasoning styles. Some excel at architectural structure, while others are better at catching security edge cases. By using 5+ models independently and then cross-reviewing, you catch more issues, resolve conflicts early, and produce a significantly more robust plan than any single model could produce alone.
 

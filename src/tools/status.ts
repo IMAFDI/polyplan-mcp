@@ -135,6 +135,7 @@ async function formatStatus(
 
   if (!status.rounds.round1.hasPlans) {
     lines.push("ℹ  Run /polyplan round1 in CLI tools to start planning");
+    lines.push("ℹ  OpenCode/Gemini users: use \"Call the polyplan_round1 tool\" instead of \"Use polyplan\" to ensure MCP tool invocation");
   } else if (!status.rounds.round2.hasPlans) {
     lines.push("ℹ  When satisfied with Round 1, run /polyplan round2 to begin peer review");
   } else if (!status.rounds.final.hasPlans) {
