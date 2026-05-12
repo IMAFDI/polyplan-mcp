@@ -31,31 +31,34 @@ npm install -g polyplan-mcp
    ```
 2. **In any connected CLI tool, start Round 1**
    ```
-   Use polyplan to start round 1 for this problem: [your problem]
+   /round_1 Start Round 1 for this problem: [your problem]
    ```
 3. **Check status anytime**
    ```
-   Use polyplan to show status
+   /show_status
    ```
 
 ## All Commands
 
-| Command | Description |
+These are the MCP tool names. In Claude Code they appear directly as `/slash commands` in the `/` menu.
+
+| Slash Command | Description |
 |---|---|
-| `round1` | Start Round 1. Creates an individual plan for this model/CLI combo. |
-| `round2` | Start Round 2. Auto-feeds all Round 1 plans except own. Creates master plan. |
-| `final` | Start Final round. Feeds ALL Round 1 + Round 2 plans. Creates final implementable plan. |
-| `status` | Show full session state — which models have completed each round. |
-| `clear` | Wipe all plans and start completely fresh. Prompts for confirmation. |
-| `clear round1` | Clear only Round 1 plans. Leaves Round 2 intact if it exists. |
-| `clear round2` | Clear only Round 2 plans. Leaves Round 1 intact. |
-| `conflicts` | Show all points where models disagreed in Round 1. |
-| `questions` | Show all open questions raised by any model, and which were answered by others. |
-| `diff` | Show what changed for a specific model between Round 1 and Round 2. |
-| `agree` | Show what ALL models agreed on in Round 1 without seeing each other. |
-| `summary` | One-paragraph summary of each model's plan. Quick overview. |
-| `export` | Bundle entire `.plans/` session into one readable markdown file for sharing. |
-| `history` | Full audit log — which model, which CLI, which round, what time, what action. |
+| `/round_1` | Start Round 1 — create an independent plan (no other models seen). |
+| `/round_1_context` | Get the Round 1 prompt — call before generating your plan. |
+| `/round_2` | Start Round 2 — peer-review all Round 1 plans and write a revised master plan. Requires ≥2 Round 1 plans. |
+| `/round_2_context` | Get the Round 2 prompt with all other models' plans injected. |
+| `/final_plan` | Start Final round — synthesize ALL plans into one implementable plan. Requires ≥1 Round 2 plan. |
+| `/final_plan_context` | Get the Final round prompt with all Round 1 + Round 2 plans injected. |
+| `/show_status` | Show full session state — which models completed each round. |
+| `/clear_plans` | Delete plan files. Specify `all`, `round1`, `round2`, or `final`. Requires `confirm=true`. |
+| `/show_conflicts` | Show all points where models disagreed in Round 1. |
+| `/show_questions` | Show all open questions raised by any model, and which were answered by others. |
+| `/show_diff` | Show what changed for a specific model between Round 1 and Round 2. |
+| `/show_agree` | Show what ALL models agreed on independently in Round 1. |
+| `/show_summary` | One-paragraph summary of each model's plan. |
+| `/export_plans` | Bundle entire `.plans/` session into one readable markdown file for sharing. |
+| `/show_history` | Full audit log — model, CLI tool, round, time, action. |
 
 ## File Naming Convention
 All plans are stored locally in the `.plans/` directory using the following convention:
@@ -89,22 +92,22 @@ OpenCode with Gemini models requires explicit tool invocation syntax. Use **"Cal
 
 | ❌ May not invoke the tool | ✅ Always invokes the tool |
 |---|---|
-| `Use polyplan round1 for this problem: ...` | `Call the polyplan_round1 tool with modelName='gemini2.5' and problem='...' and plan='...'` |
-| `Use polyplan to show status` | `Call the polyplan_status tool` |
-| `Use polyplan round2` | `Call the polyplan_round2_context tool, then call polyplan_round2` |
+| `Use polyplan round1 for this problem: ...` | `Call the round_1 tool with modelName='gemini2.5' and problem='...' and plan='...'` |
+| `Use polyplan to show status` | `Call the show_status tool` |
+| `Use polyplan round2` | `Call the round_2_context tool, then call round_2` |
 
 The word **"Call"** forces direct MCP tool invocation in OpenCode/Gemini instead of a natural-language response.
 
 ### Claude Code
 Claude Code auto-detects as `claudecode` but does not expose the active model name via MCP. Always pass `modelName` explicitly:
 ```
-Call the polyplan_round1 tool with modelName='sonnet4.6' for this problem: ...
+/round_1 modelName=sonnet4.6 problemDescription="..." plan="..."
 ```
 
 ### GitHub Copilot (VS Code)
-Works with natural language. Still recommended to pass `modelName`:
+Works with slash commands directly. Still recommended to pass `modelName`:
 ```
-Use polyplan round1 with modelName='sonnet4.6' for this problem: ...
+/round_1 with modelName='sonnet4.6' for this problem: ...
 ```
 
 ## Why Multi-Model Planning?

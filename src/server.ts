@@ -2,7 +2,7 @@
  * PolyPlan MCP — Server Setup & Tool Registration
  *
  * Creates the MCP server instance and registers all tools.
- * Each tool maps to a /polyplan command from the master plan.
+ * Tool names use underscore_format so Claude Code exposes them as /slash commands.
  */
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -32,10 +32,10 @@ export function createServer(projectRoot: string): McpServer {
     version: "0.1.0",
   });
 
-  // ─── polyplan_init ────────────────────────────────────────────────
+  // ─── init ─────────────────────────────────────────────────────────
   server.tool(
-    "polyplan_init",
-    "Initialize PolyPlan in the current project. Creates .plans/ and .polyplan/ directories.",
+    "init",
+    "Initialize PolyPlan in this project — creates .plans/ and .polyplan/ directories",
     {},
     async () => {
       const alreadyInit = await isInitialized(projectRoot);
@@ -52,10 +52,10 @@ export function createServer(projectRoot: string): McpServer {
     }
   );
 
-  // ─── polyplan_round1 ──────────────────────────────────────────────
+  // ─── round_1 ──────────────────────────────────────────────────────
   server.tool(
-    "polyplan_round1",
-    "Start Round 1: Create an individual implementation plan for the given problem. Each model creates its own plan independently.",
+    "round_1",
+    "Start Round 1 — create an independent plan for this model/CLI (no other models seen)",
     {
       problemDescription: z.string().describe("The problem or requirement to plan for"),
       modelName: z.string().optional().describe("Your model name — ALWAYS pass this (e.g., 'sonnet4.6', 'gpt-4o', 'gemini2.5'). Without it the plan file will be named 'unknown'."),
@@ -79,10 +79,10 @@ export function createServer(projectRoot: string): McpServer {
     }
   );
 
-  // ─── polyplan_round1_context ──────────────────────────────────────
+  // ─── round_1_context ──────────────────────────────────────────────
   server.tool(
-    "polyplan_round1_context",
-    "Get the Round 1 prompt/context to use when creating a plan. Call this before generating your plan.",
+    "round_1_context",
+    "Get the Round 1 prompt — call this first, then generate your plan, then call round_1 to save",
     {
       problemDescription: z.string().describe("The problem or requirement to plan for"),
     },
@@ -92,10 +92,10 @@ export function createServer(projectRoot: string): McpServer {
     }
   );
 
-  // ─── polyplan_round2 ──────────────────────────────────────────────
+  // ─── round_2 ──────────────────────────────────────────────────────
   server.tool(
-    "polyplan_round2",
-    "Start Round 2: Create a revised master plan after reviewing all other models' Round 1 plans. Requires at least 2 Round 1 plans.",
+    "round_2",
+    "Start Round 2 — peer-review all Round 1 plans and write a revised master plan (requires ≥2 Round 1 plans)",
     {
       modelName: z.string().optional().describe("Your model name — ALWAYS pass this (e.g., 'sonnet4.6', 'gpt-4o', 'gemini2.5'). Without it the plan file will be named 'unknown'."),
       plan: z.string().describe("The revised master plan content"),
@@ -116,12 +116,12 @@ export function createServer(projectRoot: string): McpServer {
     }
   );
 
-  // ─── polyplan_round2_context ──────────────────────────────────────
+  // ─── round_2_context ──────────────────────────────────────────────
   server.tool(
-    "polyplan_round2_context",
-    "Get the Round 2 prompt/context with all other models' Round 1 plans injected. Call this before generating your Round 2 plan.",
+    "round_2_context",
+    "Get the Round 2 prompt with all other models' Round 1 plans injected — call this before generating your Round 2 plan",
     {
-      modelName: z.string().optional().describe("Explicit model name override"),
+      modelName: z.string().optional().describe("Your model name (e.g., 'sonnet4.6') — used to exclude your own Round 1 plan from the injected context"),
     },
     async (params, extra) => {
       const identity = detectCaller(server.server.getClientVersion(), params.modelName);
@@ -132,10 +132,10 @@ export function createServer(projectRoot: string): McpServer {
     }
   );
 
-  // ─── polyplan_final ───────────────────────────────────────────────
+  // ─── final_plan ───────────────────────────────────────────────────
   server.tool(
-    "polyplan_final",
-    "Start Final round: Synthesize ALL Round 1 + Round 2 plans into one implementable plan. Requires at least 1 Round 2 plan.",
+    "final_plan",
+    "Start Final round — synthesize ALL Round 1 + Round 2 plans into one implementable plan (requires ≥1 Round 2 plan)",
     {
       modelName: z.string().optional().describe("Your model name — ALWAYS pass this (e.g., 'opus4.6', 'gpt-4o'). Without it the plan file will be named 'unknown'."),
       plan: z.string().describe("The final synthesized plan content"),
@@ -156,10 +156,10 @@ export function createServer(projectRoot: string): McpServer {
     }
   );
 
-  // ─── polyplan_final_context ───────────────────────────────────────
+  // ─── final_plan_context ───────────────────────────────────────────
   server.tool(
-    "polyplan_final_context",
-    "Get the Final round prompt/context with ALL Round 1 + Round 2 plans injected. Call this before generating your final plan.",
+    "final_plan_context",
+    "Get the Final round prompt with ALL Round 1 + Round 2 plans injected — call this before generating the final plan",
     {},
     async () => {
       const result = await getFinalContext(projectRoot);
@@ -168,12 +168,12 @@ export function createServer(projectRoot: string): McpServer {
     }
   );
 
-  // ─── polyplan_status ──────────────────────────────────────────────
+  // ─── show_status ──────────────────────────────────────────────────
   server.tool(
-    "polyplan_status",
-    "Show full session state — which models have completed each round, open questions, and conflicts.",
+    "show_status",
+    "Show full session state — which models completed each round, open questions, and conflicts",
     {
-      modelName: z.string().optional().describe("Explicit model name override"),
+      modelName: z.string().optional().describe("Your model name (optional)"),
     },
     async (params, extra) => {
       const identity = detectCaller(server.server.getClientVersion(), params.modelName);
@@ -182,14 +182,14 @@ export function createServer(projectRoot: string): McpServer {
     }
   );
 
-  // ─── polyplan_clear ───────────────────────────────────────────────
+  // ─── clear_plans ──────────────────────────────────────────────────
   server.tool(
-    "polyplan_clear",
-    "Clear plan files. Specify target: 'all', 'round1', 'round2', or 'final'. Requires confirmation.",
+    "clear_plans",
+    "Delete plan files — target 'all', 'round1', 'round2', or 'final'. Must set confirm=true.",
     {
-      target: z.enum(["all", "round1", "round2", "final"]).describe("What to clear"),
-      confirm: z.boolean().describe("Must be true to actually delete files"),
-      modelName: z.string().optional().describe("Explicit model name override"),
+      target: z.enum(["all", "round1", "round2", "final"]).describe("Which plans to clear"),
+      confirm: z.boolean().describe("Must be true to actually delete — safety gate"),
+      modelName: z.string().optional().describe("Your model name (optional)"),
     },
     async (params, extra) => {
       const identity = detectCaller(server.server.getClientVersion(), params.modelName);
@@ -201,12 +201,12 @@ export function createServer(projectRoot: string): McpServer {
     }
   );
 
-  // ─── polyplan_conflicts ───────────────────────────────────────────
+  // ─── show_conflicts ───────────────────────────────────────────────
   server.tool(
-    "polyplan_conflicts",
-    "Show all points where models disagreed in Round 1 — technology, approach, and assumption conflicts.",
+    "show_conflicts",
+    "Show all points where models disagreed in Round 1 — technology choices, approach, and assumption conflicts",
     {
-      modelName: z.string().optional().describe("Explicit model name override"),
+      modelName: z.string().optional().describe("Your model name (optional)"),
     },
     async (params, extra) => {
       const identity = detectCaller(server.server.getClientVersion(), params.modelName);
@@ -215,12 +215,12 @@ export function createServer(projectRoot: string): McpServer {
     }
   );
 
-  // ─── polyplan_questions ───────────────────────────────────────────
+  // ─── show_questions ───────────────────────────────────────────────
   server.tool(
-    "polyplan_questions",
-    "Show all open questions raised by any model, and whether they were answered by others.",
+    "show_questions",
+    "Show all open questions raised by any model in Round 1, and whether other models answered them",
     {
-      modelName: z.string().optional().describe("Explicit model name override"),
+      modelName: z.string().optional().describe("Your model name (optional)"),
     },
     async (params, extra) => {
       const identity = detectCaller(server.server.getClientVersion(), params.modelName);
@@ -229,13 +229,13 @@ export function createServer(projectRoot: string): McpServer {
     }
   );
 
-  // ─── polyplan_diff ────────────────────────────────────────────────
+  // ─── show_diff ────────────────────────────────────────────────────
   server.tool(
-    "polyplan_diff",
-    "Show what changed for a specific model between Round 1 and Round 2.",
+    "show_diff",
+    "Show what changed for a specific model between their Round 1 and Round 2 plans",
     {
-      model: z.string().describe("Model identifier (e.g., 'copilot-sonnet4.6')"),
-      modelName: z.string().optional().describe("Explicit model name override for the caller"),
+      model: z.string().describe("Model identifier to diff (e.g., 'copilot-sonnet4.6')"),
+      modelName: z.string().optional().describe("Your model name (optional)"),
     },
     async (params, extra) => {
       const identity = detectCaller(server.server.getClientVersion(), params.modelName);
@@ -244,12 +244,12 @@ export function createServer(projectRoot: string): McpServer {
     }
   );
 
-  // ─── polyplan_agree ───────────────────────────────────────────────
+  // ─── show_agree ───────────────────────────────────────────────────
   server.tool(
-    "polyplan_agree",
-    "Show what ALL models agreed on in Round 1 — highest confidence decisions.",
+    "show_agree",
+    "Show what ALL models agreed on independently in Round 1 — highest-confidence decisions",
     {
-      modelName: z.string().optional().describe("Explicit model name override"),
+      modelName: z.string().optional().describe("Your model name (optional)"),
     },
     async (params, extra) => {
       const identity = detectCaller(server.server.getClientVersion(), params.modelName);
@@ -258,13 +258,13 @@ export function createServer(projectRoot: string): McpServer {
     }
   );
 
-  // ─── polyplan_summary ─────────────────────────────────────────────
+  // ─── show_summary ─────────────────────────────────────────────────
   server.tool(
-    "polyplan_summary",
-    "One-paragraph summary of each model's plan. Quick overview.",
+    "show_summary",
+    "One-paragraph summary of each model's plan — quick overview of all positions",
     {
-      round: z.enum(["round1", "round2", "final"]).optional().describe("Which round to summarize (defaults to latest)"),
-      modelName: z.string().optional().describe("Explicit model name override"),
+      round: z.enum(["round1", "round2", "final"]).optional().describe("Which round to summarize (defaults to latest round with plans)"),
+      modelName: z.string().optional().describe("Your model name (optional)"),
     },
     async (params, extra) => {
       const identity = detectCaller(server.server.getClientVersion(), params.modelName);
@@ -273,12 +273,12 @@ export function createServer(projectRoot: string): McpServer {
     }
   );
 
-  // ─── polyplan_export ──────────────────────────────────────────────
+  // ─── export_plans ─────────────────────────────────────────────────
   server.tool(
-    "polyplan_export",
-    "Bundle entire .plans/ session into one readable markdown file for sharing or archiving.",
+    "export_plans",
+    "Bundle the entire .plans/ session into one readable markdown file for sharing or archiving",
     {
-      modelName: z.string().optional().describe("Explicit model name override"),
+      modelName: z.string().optional().describe("Your model name (optional)"),
     },
     async (params, extra) => {
       const identity = detectCaller(server.server.getClientVersion(), params.modelName);
@@ -287,12 +287,12 @@ export function createServer(projectRoot: string): McpServer {
     }
   );
 
-  // ─── polyplan_history ─────────────────────────────────────────────
+  // ─── show_history ─────────────────────────────────────────────────
   server.tool(
-    "polyplan_history",
-    "Full audit log — which model, which CLI, which round, what time, what action.",
+    "show_history",
+    "Full audit log — which model, which CLI tool, which round, what time, what action",
     {
-      modelName: z.string().optional().describe("Explicit model name override"),
+      modelName: z.string().optional().describe("Your model name (optional)"),
     },
     async (params, extra) => {
       const identity = detectCaller(server.server.getClientVersion(), params.modelName);
@@ -303,3 +303,4 @@ export function createServer(projectRoot: string): McpServer {
 
   return server;
 }
+
