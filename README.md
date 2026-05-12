@@ -22,25 +22,34 @@ PolyPlan orchestrates a 3-round planning workflow:
 ```bash
 npm install -g polyplan-mcp
 ```
-*Note: PolyPlan auto-registers in Claude Code, Cursor, Windsurf, OpenCode, and VS Code (Copilot) on install.*
+*Note: Global install does best-effort user-level MCP registration. Run `polyplan-mcp init` inside each project to create project-local MCP config and slash-command wrappers.*
 
 ## Quick Start
 1. **Initialize in your project**
    ```bash
    polyplan-mcp init
    ```
-2. **In any connected CLI tool, start Round 1**
+2. **Restart your AI coding CLI/editor**
+3. **In any connected CLI tool, start Round 1**
    ```
-   /round_1 Start Round 1 for this problem: [your problem]
+   /polyplan round1 [your problem]
    ```
-3. **Check status anytime**
+   Or use the direct command:
+   ```
+   /round_1 [your problem]
+   ```
+4. **Check status anytime**
+   ```
+   /polyplan status
+   ```
+   Or:
    ```
    /show_status
    ```
 
 ## All Commands
 
-These are the MCP tool names. In Claude Code they appear directly as `/slash commands` in the `/` menu.
+These are the MCP tool names and the generated slash wrapper names. PolyPlan keeps MCP tools as the execution layer and creates client-specific prompt/command files during `polyplan-mcp init` where supported.
 
 | Slash Command | Description |
 |---|---|
@@ -60,6 +69,15 @@ These are the MCP tool names. In Claude Code they appear directly as `/slash com
 | `/export_plans` | Bundle entire `.plans/` session into one readable markdown file for sharing. |
 | `/show_history` | Full audit log — model, CLI tool, round, time, action. |
 
+PolyPlan also generates `/polyplan` as a routing command where client command files are supported:
+
+```text
+/polyplan status
+/polyplan round1 [problem]
+/polyplan round2
+/polyplan final
+```
+
 ## File Naming Convention
 All plans are stored locally in the `.plans/` directory using the following convention:
 ```
@@ -72,11 +90,15 @@ All plans are stored locally in the `.plans/` directory using the following conv
 
 ## Supported CLI Tools
 PolyPlan connects to any tool supporting the Model Context Protocol (MCP):
-- **Claude Code** (`~/.claude/claude_mcp_config.json`)
-- **GitHub Copilot / VS Code** (`.github/copilot-config.json` or global)
-- **Cursor**
-- **Windsurf**
-- **OpenCode**
+- **Claude Code** (`.mcp.json`, `.claude/commands/`)
+- **Cursor** (`.cursor/mcp.json`, `.cursor/commands/`)
+- **OpenCode** (`opencode.json`, `.opencode/commands/`)
+- **VS Code / GitHub Copilot Agent mode** (`.vscode/mcp.json`, `.github/prompts/`)
+- **GitHub Copilot CLI** (`.mcp.json`)
+- **Codex CLI** (global `~/.codex/config.toml` best-effort postinstall registration)
+- **Windsurf / AntiGravity / Gemini CLI workflows** (MCP tools and prompts where configured)
+
+See [COMPATIBILITY.md](COMPATIBILITY.md) for the full client support matrix and limitations.
 
 ## CLI Tool Specific Usage
 
@@ -84,7 +106,7 @@ PolyPlan connects to any tool supporting the Model Context Protocol (MCP):
 PolyPlan saves plans using the model name in the filename (e.g., `round1-claudecode-sonnet4.6.md`). Auto-detection is not always possible, so **always pass `modelName` explicitly**:
 
 ```
-Call the polyplan_round1 tool with modelName='sonnet4.6' and problem='...' and plan='...'
+Call the round_1 tool with modelName='sonnet4.6', problemDescription='...', and plan='...'
 ```
 
 ### OpenCode / Gemini

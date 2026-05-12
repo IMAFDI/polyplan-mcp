@@ -21,6 +21,8 @@ import { executeSummary } from "./tools/summary.js";
 import { executeExport } from "./tools/export.js";
 import { executeHistory } from "./tools/history.js";
 import { initProject, isInitialized } from "./core/session.js";
+import { ensureClientCompatibility } from "./compat/clientSetup.js";
+import { registerPolyPlanPrompts, registerPolyPlanResources } from "./compat/mcpPrompts.js";
 import type { Round } from "./types.js";
 
 /**
@@ -32,6 +34,9 @@ export function createServer(projectRoot: string): McpServer {
     version: "0.1.0",
   });
 
+  registerPolyPlanPrompts(server);
+  registerPolyPlanResources(server);
+
   // ─── init ─────────────────────────────────────────────────────────
   server.tool(
     "init",
@@ -40,9 +45,16 @@ export function createServer(projectRoot: string): McpServer {
     async () => {
       const alreadyInit = await isInitialized(projectRoot);
       if (alreadyInit) {
-        return { content: [{ type: "text", text: "PolyPlan is already initialized in this project." }] };
+        const setup = await ensureClientCompatibility(projectRoot);
+        return {
+          content: [{
+            type: "text",
+            text: `PolyPlan is already initialized in this project.\nCompatibility files ensured: ${setup.created.length} created, ${setup.updated.length} updated.`,
+          }],
+        };
       }
       const config = await initProject(projectRoot);
+      await ensureClientCompatibility(projectRoot);
       return {
         content: [{
           type: "text",
@@ -185,16 +197,51 @@ export function createServer(projectRoot: string): McpServer {
   // ─── clear_plans ──────────────────────────────────────────────────
   server.tool(
     "clear_plans",
-    "Delete plan files — target 'all', 'round1', 'round2', or 'final'. Must set confirm=true.",
+    "Delete ALL plan files across all rounds. Must set confirm=true.",
     {
-      target: z.enum(["all", "round1", "round2", "final"]).describe("Which plans to clear"),
       confirm: z.boolean().describe("Must be true to actually delete — safety gate"),
       modelName: z.string().optional().describe("Your model name (optional)"),
     },
     async (params, extra) => {
       const identity = detectCaller(server.server.getClientVersion(), params.modelName);
       const result = await executeClear(projectRoot, identity, {
-        target: params.target as Round | "all",
+        target: "all",
+        confirm: params.confirm,
+      });
+      return { content: [{ type: "text", text: result.message }] };
+    }
+  );
+
+  // ─── clear_round_1 ────────────────────────────────────────────────
+  server.tool(
+    "clear_round_1",
+    "Delete only Round 1 plan files — leaves Round 2 and Final intact. Must set confirm=true.",
+    {
+      confirm: z.boolean().describe("Must be true to actually delete — safety gate"),
+      modelName: z.string().optional().describe("Your model name (optional)"),
+    },
+    async (params, extra) => {
+      const identity = detectCaller(server.server.getClientVersion(), params.modelName);
+      const result = await executeClear(projectRoot, identity, {
+        target: "round1",
+        confirm: params.confirm,
+      });
+      return { content: [{ type: "text", text: result.message }] };
+    }
+  );
+
+  // ─── clear_round_2 ────────────────────────────────────────────────
+  server.tool(
+    "clear_round_2",
+    "Delete only Round 2 plan files — leaves Round 1 and Final intact. Must set confirm=true.",
+    {
+      confirm: z.boolean().describe("Must be true to actually delete — safety gate"),
+      modelName: z.string().optional().describe("Your model name (optional)"),
+    },
+    async (params, extra) => {
+      const identity = detectCaller(server.server.getClientVersion(), params.modelName);
+      const result = await executeClear(projectRoot, identity, {
+        target: "round2",
         confirm: params.confirm,
       });
       return { content: [{ type: "text", text: result.message }] };
@@ -303,4 +350,3 @@ export function createServer(projectRoot: string): McpServer {
 
   return server;
 }
-

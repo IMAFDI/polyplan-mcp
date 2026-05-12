@@ -18,6 +18,12 @@ const POLYPLAN_ENTRY = {
   args: ["--project", "./"],
 };
 
+const OPENCODE_ENTRY = {
+  type: "local",
+  command: ["polyplan-mcp", "--project", "./"],
+  enabled: true,
+};
+
 const DIVIDER = "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━";
 
 function homeDir() {
@@ -75,8 +81,9 @@ const TOOL_CONFIGS = [
   },
   {
     name: "OpenCode",
-    keyPath: ["mcpServers", "polyplan"],
-    filePath: "~/.config/opencode/config.json",
+    keyPath: ["mcp", "polyplan"],
+    filePath: "~/.config/opencode/opencode.json",
+    entry: OPENCODE_ENTRY,
   },
   {
     name: "VS Code (Copilot)",
@@ -90,7 +97,22 @@ const TOOL_CONFIGS = [
   },
 ];
 
+const TOML_CONFIGS = [
+  {
+    name: "Codex CLI",
+    filePath: "~/.codex/config.toml",
+    section: "[mcp_servers.polyplan]",
+    block: [
+      "[mcp_servers.polyplan]",
+      'command = "polyplan-mcp"',
+      'args = ["--project", "./"]',
+      "",
+    ].join("\n"),
+  },
+];
+
 function getFilePath(tool) {
+  if (path.isAbsolute(tool.filePath)) return tool.filePath;
   return expand(tool.filePath);
 }
 
@@ -115,13 +137,25 @@ function getNestedKey(obj, keyPath) {
 function alreadyRegistered(obj, keyPath) {
   const existing = getNestedKey(obj, keyPath);
   if (!existing) return false;
+  if (Array.isArray(existing.command)) {
+    return existing.command[0] === POLYPLAN_ENTRY.command;
+  }
   return existing.command === POLYPLAN_ENTRY.command;
 }
 
 function registerTool(tool) {
   const filePath = getFilePath(tool);
+  const entry = tool.entry ?? POLYPLAN_ENTRY;
 
   if (!fs.existsSync(filePath)) {
+    if (tool.createIfMissing) {
+      const obj = {};
+      setNestedKey(obj, tool.keyPath, entry);
+      if (!writeJson(filePath, obj)) {
+        return { status: "write-error", path: filePath };
+      }
+      return { status: "registered", path: filePath };
+    }
     return { status: "not-installed", path: filePath };
   }
 
@@ -134,13 +168,42 @@ function registerTool(tool) {
     return { status: "already-registered", path: filePath };
   }
 
-  setNestedKey(obj, tool.keyPath, POLYPLAN_ENTRY);
+  setNestedKey(obj, tool.keyPath, entry);
 
   if (!writeJson(filePath, obj)) {
     return { status: "write-error", path: filePath };
   }
 
   return { status: "registered", path: filePath };
+}
+
+function registerToml(config) {
+  const filePath = getFilePath(config);
+  let content = "";
+  const exists = fs.existsSync(filePath);
+
+  if (exists) {
+    try {
+      content = fs.readFileSync(filePath, "utf-8");
+    } catch {
+      return { status: "write-error", path: filePath };
+    }
+  }
+
+  if (content.includes(config.section)) {
+    return { status: "already-registered", path: filePath };
+  }
+
+  try {
+    const dir = path.dirname(filePath);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    const prefix = content.trimEnd();
+    const next = prefix ? `${prefix}\n\n${config.block}` : config.block;
+    fs.writeFileSync(filePath, next, "utf-8");
+    return { status: "registered", path: filePath };
+  } catch {
+    return { status: "write-error", path: filePath };
+  }
 }
 
 function shortenPath(p) {
@@ -159,6 +222,10 @@ function run() {
   for (const tool of TOOL_CONFIGS) {
     const result = registerTool(tool);
     results.push({ name: tool.name, ...result });
+  }
+  for (const config of TOML_CONFIGS) {
+    const result = registerToml(config);
+    results.push({ name: config.name, ...result });
   }
 
   const registered = results.filter((r) => r.status === "registered").length;
@@ -188,7 +255,8 @@ function run() {
   } else {
     console.log("No CLI tools detected. Install a tool to auto-register PolyPlan.");
   }
-  console.log("Restart your CLI tools and run /polyplan status to confirm.\n");
+  console.log("Run polyplan-mcp init inside each project to create project-local slash commands.");
+  console.log("Restart your CLI tools and run /polyplan status or /show_status to confirm.\n");
 }
 
 run();

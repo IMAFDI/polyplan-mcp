@@ -2,7 +2,44 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.1.4] - 2026-05-12
+## [0.1.6] - 2026-05-12
+
+### Added
+- MCP prompts for all PolyPlan workflow commands, enabling clients that expose MCP prompts as slash commands.
+- MCP `polyplan://commands` resource for command discovery.
+- Project-local compatibility generation during `polyplan-mcp init`:
+  - `.mcp.json`
+  - `.cursor/mcp.json`
+  - `.vscode/mcp.json`
+  - `opencode.json`
+  - `.claude/commands/*.md`
+  - `.cursor/commands/*.md`
+  - `.opencode/commands/*.md`
+  - `.github/prompts/*.prompt.md`
+- `/polyplan` routing wrapper for clients with file-backed custom slash commands.
+- `COMPATIBILITY.md` with architecture notes and client support matrix.
+
+### Changed
+- `polyplan-mcp init` is now idempotent for compatibility files, even when PolyPlan is already initialized.
+- `postinstall` now avoids project-local registration and only performs best-effort user/global MCP registration.
+- Added best-effort Codex CLI MCP registration in `~/.codex/config.toml`.
+- Updated README setup and client support guidance.
+
+## [0.1.5] - 2026-05-12
+
+### Fixed
+- `polyplan-mcp --version` now prints the version number (handles `--version` and `-v` flags)
+- Missing execute bit on `dist/index.js` — `postbuild` script runs `chmod +x` after every build
+- Shebang guard ensures `#!/usr/bin/env node` survives TypeScript compilation
+- Claude Code slash commands: postinstall now writes to `.mcp.json` in project CWD (project-level), not `~/.claude.json` (user-level)
+- `.mcp.json` is created from scratch if it doesn't exist
+
+### Added
+- `clear_round_1` slash command — delete only Round 1 plans
+- `clear_round_2` slash command — delete only Round 2 plans
+- `clear_plans` now targets `all` plans (simplified — use `clear_round_1`/`clear_round_2` for targeted clears)
+
+
 
 ### Changed
 - Renamed all MCP tool names to underscore_format so Claude Code exposes them as `/slash commands` in the `/` menu

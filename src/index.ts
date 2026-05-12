@@ -10,8 +10,16 @@
 
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
 import { createServer } from "./server.js";
 import { initProject, isInitialized } from "./core/session.js";
+import { ensureClientCompatibility } from "./compat/clientSetup.js";
+
+// Read version from package.json without bundling issues
+const require = createRequire(import.meta.url);
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const pkg = require(path.join(__dirname, "../package.json")) as { version: string };
 
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
@@ -24,6 +32,11 @@ async function main(): Promise<void> {
   }
 
   // Handle CLI commands
+  if (args.includes("--version") || args.includes("-v")) {
+    console.log(pkg.version);
+    return;
+  }
+
   if (args.includes("init")) {
     await handleInit(projectRoot);
     return;
@@ -39,12 +52,15 @@ async function main(): Promise<void> {
 async function handleInit(projectRoot: string): Promise<void> {
   const already = await isInitialized(projectRoot);
   if (already) {
+    const setup = await ensureClientCompatibility(projectRoot);
     console.log("PolyPlan is already initialized in this project.");
     console.log(`  📁 Project root: ${projectRoot}`);
+    console.log(`  🔌 Compatibility files: ${setup.created.length} created, ${setup.updated.length} updated`);
     return;
   }
 
   const config = await initProject(projectRoot);
+  const setup = await ensureClientCompatibility(projectRoot);
 
   console.log("");
   console.log("  ✅ PolyPlan initialized!");
@@ -52,11 +68,12 @@ async function handleInit(projectRoot: string): Promise<void> {
   console.log(`  📁 Project: ${config.projectName}`);
   console.log(`  📂 Created .plans/`);
   console.log(`  📂 Created .polyplan/config.json`);
+  console.log(`  🔌 Created compatibility files: ${setup.created.length}`);
   console.log(`  📝 Updated .gitignore`);
   console.log("");
   console.log("  Next steps:");
-  console.log("  1. Add polyplan-mcp to your CLI tool's MCP config");
-  console.log("  2. Run /polyplan round1 \"your problem\" in each CLI tool");
+  console.log("  1. Restart your AI coding CLI/editor");
+  console.log("  2. Run /polyplan status or /show_status");
   console.log("");
 }
 

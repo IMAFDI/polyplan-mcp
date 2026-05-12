@@ -1,6 +1,6 @@
 {
   "name": "polyplan-mcp",
-  "version": "0.1.4",
+  "version": "0.1.6",
   "description": "Multi-model AI planning MCP server for CLI coding tools",
   "type": "module",
   "main": "dist/index.js",
@@ -9,6 +9,7 @@
   },
   "scripts": {
     "build": "tsc",
+    "postbuild": "node scripts/add-shebang.js",
     "dev": "tsx src/index.ts",
     "start": "node dist/index.js",
     "postinstall": "node scripts/postinstall.js"
@@ -25,6 +26,7 @@
   "files": [
     "dist",
     "README.md",
+    "COMPATIBILITY.md",
     "scripts"
   ],
   "license": "MIT",
