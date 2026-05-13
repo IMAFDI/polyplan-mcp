@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.9] - 2026-05-14
+
+### Added
+- Auto-detection for installed AI coding tools (Claude Code, GitHub Copilot, OpenCode, Gemini CLI, Cursor, Codex).
+- Auto-registration of PolyPlan MCP server in each detected tool's configuration during `polyplan-mcp init`.
+- Prints a clear summary of which tools were detected and configured during `init`.
+- Automatically adds generated configuration folders to `.gitignore`.
+
 ## [0.1.6] - 2026-05-12
 
 ### Added
