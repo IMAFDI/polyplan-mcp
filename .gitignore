@@ -1,9 +1,10 @@
 node_modules/
 dist/
 .plans/
-.polyplan/
 *.log
 .env
 .DS_Store
 *.tsbuildinfo
 POLYPLAN_MASTER_PLAN.md
+.polyplan/history.log
+.polyplan/

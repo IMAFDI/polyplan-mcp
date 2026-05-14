@@ -38,6 +38,8 @@ export interface PlanFile extends PlanFileInfo {
   timestamp: Date;
 }
 
+
+
 // ─── Session / Config ──────────────────────────────────────────────────────
 
 /** Project config stored in .polyplan/config.json */
@@ -48,6 +50,12 @@ export interface PolyPlanConfig {
   createdAt: string;
   /** Current active problem description (set in Round 1) */
   problemDescription?: string;
+  /** Context provider setting */
+  contextProvider?: string;
+  /** Max context tokens */
+  maxContextTokens?: number;
+  /** Include file tree in context */
+  includeFileTree?: boolean;
 }
 
 // ─── Model Detection ───────────────────────────────────────────────────────

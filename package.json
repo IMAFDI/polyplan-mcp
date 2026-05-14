@@ -1,6 +1,6 @@
 {
   "name": "polyplan-mcp",
-  "version": "0.1.9",
+  "version": "0.3.0",
   "description": "Multi-model AI planning MCP server for CLI coding tools",
   "type": "module",
   "main": "dist/index.js",
@@ -16,7 +16,6 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
-    "polyplan-mcp": "^0.1.7",
     "zod": "^3.22.0"
   },
   "devDependencies": {
@@ -27,7 +26,6 @@
   "files": [
     "dist",
     "README.md",
-    "COMPATIBILITY.md",
     "scripts"
   ],
   "license": "MIT",

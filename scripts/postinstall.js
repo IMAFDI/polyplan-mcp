@@ -255,8 +255,8 @@ function run() {
   } else {
     console.log("No CLI tools detected. Install a tool to auto-register PolyPlan.");
   }
-  console.log("Run polyplan-mcp init inside each project to create project-local slash commands.");
-  console.log("Restart your CLI tools and run /polyplan status or /show_status to confirm.\n");
+  console.log("Run polyplan-mcp init inside each project to set up planning directories.");
+  console.log("Restart your CLI tools — PolyPlan's 16 MCP tools will be available automatically.\n");
 }
 
 run();

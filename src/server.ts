@@ -3,6 +3,8 @@
  *
  * Creates the MCP server instance and registers all tools.
  * Tool names use underscore_format so Claude Code exposes them as /slash commands.
+ *
+ * Also registers MCP prompts and resources for workflow discovery.
  */
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -21,7 +23,6 @@ import { executeSummary } from "./tools/summary.js";
 import { executeExport } from "./tools/export.js";
 import { executeHistory } from "./tools/history.js";
 import { initProject, isInitialized } from "./core/session.js";
-import { ensureClientCompatibility } from "./compat/clientSetup.js";
 import { registerPolyPlanPrompts, registerPolyPlanResources } from "./compat/mcpPrompts.js";
 import type { Round } from "./types.js";
 
@@ -31,11 +32,12 @@ import type { Round } from "./types.js";
 export function createServer(projectRoot: string): McpServer {
   const server = new McpServer({
     name: "polyplan",
-    version: "0.1.0",
+    version: "0.3.0",
   });
 
+  // Register MCP prompts and resources for workflow discovery
   registerPolyPlanPrompts(server);
-  registerPolyPlanResources(server);
+  registerPolyPlanResources(server, projectRoot);
 
   // ─── init ─────────────────────────────────────────────────────────
   server.tool(
@@ -43,22 +45,12 @@ export function createServer(projectRoot: string): McpServer {
     "Initialize PolyPlan in this project — creates .plans/ and .polyplan/ directories",
     {},
     async () => {
-      const alreadyInit = await isInitialized(projectRoot);
-      if (alreadyInit) {
-        const setup = await ensureClientCompatibility(projectRoot);
-        return {
-          content: [{
-            type: "text",
-            text: `PolyPlan is already initialized in this project.\nCompatibility files ensured: ${setup.created.length} created, ${setup.updated.length} updated.`,
-          }],
-        };
-      }
-      const config = await initProject(projectRoot);
-      await ensureClientCompatibility(projectRoot);
+      const { config, wasAlreadyInitialized } = await initProject(projectRoot);
+      const prefix = wasAlreadyInitialized ? "🔄 PolyPlan re-initialized" : "✅ PolyPlan initialized";
       return {
         content: [{
           type: "text",
-          text: `✅ PolyPlan initialized!\n📁 Project: ${config.projectName}\n📂 Created .plans/ and .polyplan/\n🕐 Session started: ${config.createdAt}`,
+          text: `${prefix}\n📁 Project: ${config.projectName}\n\nCreated:\n  ✓ .plans/\n  ✓ .polyplan/config.json\n  ✓ .polyplan/WORKFLOWS.md\n  ✓ .gitignore updated`,
         }],
       };
     }
