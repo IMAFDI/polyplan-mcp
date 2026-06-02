@@ -211,5 +211,13 @@ export const CONFIG_FILE = ".polyplan/config.json";
 /** History log file path (relative to project root) */
 export const HISTORY_FILE = ".polyplan/history.log";
 
-/** Plan filename pattern: round-clitool-modelname.md */
-export const PLAN_FILENAME_REGEX = /^(round1|round2|final)-(.+)-(.+)\.md$/;
+/**
+ * Plan filename pattern: round-clitool-modelname.md
+ *
+ * The CLI segment is restricted to [a-z0-9]+ (no hyphens) so the FIRST hyphen
+ * after the round is an unambiguous boundary. This lets the model segment
+ * contain hyphens and dots (e.g. "claude-sonnet-4-5", "gpt-4o", "gemini-2.5")
+ * and still round-trip correctly through buildPlanFilename → parsePlanFilename.
+ * CLI names are kept hyphen-free by sanitizeCliName / buildPlanFilename.
+ */
+export const PLAN_FILENAME_REGEX = /^(round1|round2|final)-([a-z0-9]+)-(.+)\.md$/;
