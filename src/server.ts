@@ -29,10 +29,10 @@ import type { Round } from "./types.js";
 /**
  * Create and configure the PolyPlan MCP server with all tools registered.
  */
-export function createServer(projectRoot: string): McpServer {
+export function createServer(projectRoot: string, version: string): McpServer {
   const server = new McpServer({
     name: "polyplan",
-    version: "0.3.0",
+    version,
   });
 
   // Register MCP prompts and resources for workflow discovery

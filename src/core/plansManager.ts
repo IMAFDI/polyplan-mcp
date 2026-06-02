@@ -33,9 +33,10 @@ export function buildPlanFilename(
   cliTool: string,
   modelName: string
 ): string {
-  // Sanitize inputs: lowercase, replace spaces with hyphens
-  // Preserve hyphens and dots in model names (e.g., sonnet-4.6, gpt-4o)
-  const safeCli = cliTool.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+  // CLI segment: strip to [a-z0-9] (no hyphens) so it can't span the
+  // CLI↔model boundary. Model segment: preserve hyphens and dots
+  // (e.g., sonnet-4.6, gpt-4o, claude-sonnet-4-5).
+  const safeCli = cliTool.toLowerCase().replace(/[^a-z0-9]/g, "");
   const safeModel = modelName.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9.-]/g, "");
   return `${round}-${safeCli}-${safeModel}.md`;
 }

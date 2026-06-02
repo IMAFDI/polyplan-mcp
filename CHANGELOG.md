@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Fixed
+- Plan-filename parser mis-parsed hyphenated model names (e.g. `gpt-4o`, `claude-sonnet-4-5`), which broke Round 2's "exclude your own plan" logic and model-switch detection.
+
+### Added
+- `polyplan` MCP prompt — a menu/router that lists all PolyPlan commands when invoked with no argument, or routes a subcommand (status, round1, round2, final, conflicts, questions, agree, diff, summary, export, history, clear) to the matching MCP tool(s). This is now the recommended entry point.
+
+### Changed
+- Server version is now sourced from `package.json` at startup instead of a hardcoded literal.
+
+### Docs
+- README rewritten to reflect MCP-native reality: removed false claims about `init` generating client wrapper files; corrected tool count to 18; documented the `/polyplan` menu and the correct Claude Code namespaced prompt form (`/mcp__polyplan__polyplan`).
+- Added `COMPATIBILITY.md` with a client support matrix, per-project init details, and a Limitations section.
+
 ## [0.1.9] - 2026-05-14
 
 ### Added
