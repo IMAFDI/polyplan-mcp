@@ -8,78 +8,178 @@
 [![Node.js Version](https://img.shields.io/node/v/polyplan-mcp.svg)](https://nodejs.org)
 
 ## What is PolyPlan?
-PolyPlan is a project-local MCP (Model Context Protocol) server that enables developers to run structured, multi-model AI planning sessions across multiple CLI coding tools simultaneously. 
 
-When developers use multiple AI models (Claude Code, Copilot, OpenCode, Codex, Cursor, AntiGravity) for planning, PolyPlan provides a structured way to collect, cross-review, and synthesize plans from all models into one final implementable master plan.
+PolyPlan is an MCP (Model Context Protocol) server that enables structured, multi-model AI planning sessions across multiple CLI coding tools simultaneously.
+
+When you use multiple AI models (Claude Code, Copilot, OpenCode, Codex, Cursor, Windsurf) for planning, PolyPlan provides a structured workflow to collect, cross-review, and synthesize plans from all models into one final implementable master plan.
 
 ## How It Works
+
 PolyPlan orchestrates a 3-round planning workflow:
+
 - **Round 1:** Each model creates an independent plan saved to `.plans/` without seeing what any other model thinks.
 - **Round 2:** Each model reads all other models' Round 1 plans (except its own) and creates a revised master plan informed by peer review.
-- **Final:** One chosen model (your strongest, e.g., Opus 4.6 or GPT-4o) reads ALL Round 1 + Round 2 plans and produces the final, synthesized, implementable plan.
+- **Final:** One chosen model (e.g., Opus 4.6 or GPT-4o) reads ALL Round 1 + Round 2 plans and produces the final, synthesized, implementable plan.
 
 ## Installation
+
 ```bash
 npm install -g polyplan-mcp
 ```
-*Note: Global install does best-effort user-level MCP registration. Run `polyplan-mcp init` inside each project to create project-local MCP config and slash-command wrappers.*
+
+On install, a postinstall script runs best-effort user-level MCP registration for every supported CLI tool it finds on your machine (Claude Code `~/.claude.json`, Cursor `~/.cursor/mcp.json`, Windsurf, OpenCode, VS Code Copilot settings, and Codex CLI `~/.codex/config.toml`). Restart your CLI tools after install so they pick up the new MCP server.
 
 ## Quick Start
-1. **Initialize in your project**
+
+1. **Initialize in your project** (creates planning directories)
    ```bash
    polyplan-mcp init
    ```
-2. **Restart your AI coding CLI/editor**
-3. **In any connected CLI tool, start Round 1**
+   This creates `.plans/`, `.polyplan/config.json`, `.polyplan/WORKFLOWS.md`, and updates `.gitignore`. Nothing else.
+
+2. **Restart your AI coding tool** if you have not already.
+
+3. **Open the PolyPlan menu** — in Claude Code:
    ```
-   /polyplan round1 [your problem]
+   /mcp__polyplan__polyplan
    ```
-   Or use the direct command:
+   In any other MCP-capable client, invoke the `polyplan` MCP prompt or call the `init` tool to confirm the connection.
+
+4. **Start Round 1** — tell your model:
    ```
-   /round_1 [your problem]
-   ```
-4. **Check status anytime**
-   ```
-   /polyplan status
-   ```
-   Or:
-   ```
-   /show_status
+   Call the round_1_context tool with problemDescription="add OAuth login", then generate a plan, then call round_1 to save it with modelName="sonnet4.6"
    ```
 
-## All Commands
+---
 
-These are the MCP tool names and the generated slash wrapper names. PolyPlan keeps MCP tools as the execution layer and creates client-specific prompt/command files during `polyplan-mcp init` where supported.
+## The `/polyplan` Menu
 
-| Slash Command | Description |
-|---|---|
-| `/round_1` | Start Round 1 — create an independent plan (no other models seen). |
-| `/round_1_context` | Get the Round 1 prompt — call before generating your plan. |
-| `/round_2` | Start Round 2 — peer-review all Round 1 plans and write a revised master plan. Requires ≥2 Round 1 plans. |
-| `/round_2_context` | Get the Round 2 prompt with all other models' plans injected. |
-| `/final_plan` | Start Final round — synthesize ALL plans into one implementable plan. Requires ≥1 Round 2 plan. |
-| `/final_plan_context` | Get the Final round prompt with all Round 1 + Round 2 plans injected. |
-| `/show_status` | Show full session state — which models completed each round. |
-| `/clear_plans` | Delete plan files. Specify `all`, `round1`, `round2`, or `final`. Requires `confirm=true`. |
-| `/show_conflicts` | Show all points where models disagreed in Round 1. |
-| `/show_questions` | Show all open questions raised by any model, and which were answered by others. |
-| `/show_diff` | Show what changed for a specific model between Round 1 and Round 2. |
-| `/show_agree` | Show what ALL models agreed on independently in Round 1. |
-| `/show_summary` | One-paragraph summary of each model's plan. |
-| `/export_plans` | Bundle entire `.plans/` session into one readable markdown file for sharing. |
-| `/show_history` | Full audit log — model, CLI tool, round, time, action. |
+The `polyplan` MCP prompt is the primary entry point. With no argument it shows a capability menu; with a subcommand it routes directly to the right tool(s).
 
-PolyPlan also generates `/polyplan` as a routing command where client command files are supported:
-
-```text
-/polyplan status
-/polyplan round1 [problem]
-/polyplan round2
-/polyplan final
+**In Claude Code** the prompt is namespaced:
+```
+/mcp__polyplan__polyplan
+/mcp__polyplan__polyplan round1 add OAuth login
 ```
 
+**In other MCP clients**, invoke it through the client's prompt/slash UI as `polyplan` or `polyplan <subcommand>`.
+
+When invoked with no subcommand, PolyPlan displays:
+
+```
+PolyPlan — structured multi-model planning. Here's everything it can do:
+
+PLANNING
+  round1 <problem>   Create an independent Round 1 plan (no other models seen)
+  round2             Peer-review all Round 1 plans, then write a revised plan
+  final              Synthesize ALL plans into one implementable plan
+
+REVIEW
+  status             Which models completed each round
+  conflicts          Where Round 1 plans disagree
+  questions          Open questions raised across plans
+  agree              What every model independently agreed on
+  diff <model>       What changed for one model between rounds
+  summary [round]    One-paragraph summary of each plan
+
+MANAGE
+  export             Bundle the whole session into one markdown file
+  history            Full audit log
+  clear              Delete plan files (requires confirmation)
+
+Run one with:  /polyplan <command>   e.g.  /polyplan round1 add OAuth login
+```
+
+Each subcommand routes to the matching MCP tool(s):
+
+| Subcommand | Routes to |
+|---|---|
+| `round1 <problem>` | `round_1_context` → generate plan → `round_1` |
+| `round2` | `round_2_context` → generate plan → `round_2` |
+| `final` | `final_plan_context` → generate plan → `final_plan` |
+| `status` | `show_status` |
+| `conflicts` | `show_conflicts` |
+| `questions` | `show_questions` |
+| `agree` | `show_agree` |
+| `diff <model>` | `show_diff` |
+| `summary [round]` | `show_summary` |
+| `export` | `export_plans` |
+| `history` | `show_history` |
+| `clear` | `clear_plans` (asks for confirmation first) |
+
+---
+
+## MCP Tools Reference
+
+PolyPlan registers 18 MCP tools. These are the execution layer — invoke them directly or through the `polyplan` menu prompt above.
+
+### How to invoke
+
+**Claude Code** — MCP tools are available as slash commands under their tool names. Because PolyPlan uses a separate MCP server, address tools explicitly:
+```
+Call the round_1_context tool with problemDescription="add OAuth login"
+```
+MCP prompts are namespaced: `/mcp__polyplan__round_1`, `/mcp__polyplan__show_status`, etc.
+
+**All other MCP clients** — invoke through the client's tool/prompt UI by tool name, or use natural-language tool calls:
+```
+Call the round_1 tool with modelName="gpt-4o", problemDescription="...", and plan="..."
+```
+
+### Tool list
+
+| Tool | Description |
+|---|---|
+| `init` | Initialize PolyPlan — creates `.plans/` and `.polyplan/` directories |
+| `round_1_context` | Get the Round 1 prompt; call this first, then generate your plan |
+| `round_1` | Save a Round 1 plan |
+| `round_2_context` | Get the Round 2 prompt with all other models' Round 1 plans injected |
+| `round_2` | Save a Round 2 plan (requires ≥2 Round 1 plans) |
+| `final_plan_context` | Get the Final prompt with ALL Round 1 + Round 2 plans injected |
+| `final_plan` | Save the final synthesized plan (requires ≥1 Round 2 plan) |
+| `show_status` | Full session state — which models completed each round |
+| `show_conflicts` | Points where models disagreed in Round 1 |
+| `show_questions` | Open questions raised by any model, with cross-model answers |
+| `show_agree` | Points all models independently agreed on in Round 1 |
+| `show_diff` | What changed for one model between Round 1 and Round 2 |
+| `show_summary` | One-paragraph summary of each model's plan |
+| `export_plans` | Bundle the entire `.plans/` session into one markdown file |
+| `show_history` | Full audit log — model, CLI tool, round, time, action |
+| `clear_plans` | Delete ALL plan files (requires `confirm=true`) |
+| `clear_round_1` | Delete only Round 1 plan files (requires `confirm=true`) |
+| `clear_round_2` | Delete only Round 2 plan files (requires `confirm=true`) |
+
+PolyPlan also exposes 12 MCP prompts (`polyplan`, `round_1`, `round_2`, `final_plan`, `show_status`, `show_conflicts`, `show_questions`, `show_diff`, `show_agree`, `show_summary`, `export_plans`, `show_history`) and 3 MCP resources (`polyplan://status`, `polyplan://plans`, `polyplan://workflows`). Clients that support MCP prompts and resources will surface these automatically.
+
+---
+
+## Always Pass Your Model Name
+
+PolyPlan saves plans using the model name in the filename (e.g., `round1-claudecode-sonnet4.6.md`). Auto-detection is not always possible, so **always pass `modelName` explicitly**:
+
+```
+Call the round_1 tool with modelName="sonnet4.6", problemDescription="...", plan="..."
+```
+
+If `modelName` is omitted, the plan file will be named with `unknown` and a warning will appear in the tool response.
+
+### OpenCode / Gemini
+
+OpenCode with Gemini models requires explicit tool invocation syntax. Use **"Call the tool"** instead of natural language:
+
+| May not invoke the tool | Always invokes the tool |
+|---|---|
+| `Use polyplan round1 for this problem` | `Call the round_1_context tool, then call round_1` |
+| `Use polyplan to show status` | `Call the show_status tool` |
+
+The word **"Call"** forces direct MCP tool invocation in OpenCode/Gemini.
+
+---
+
 ## File Naming Convention
-All plans are stored locally in the `.plans/` directory using the following convention:
+
+All plans are stored locally in `.plans/`:
+
 ```
 .plans/
   round1-copilot-sonnet4.6.md
@@ -88,55 +188,20 @@ All plans are stored locally in the `.plans/` directory using the following conv
   final-antigravity-opus4.6.md
 ```
 
-## Supported CLI Tools
-PolyPlan connects to any tool supporting the Model Context Protocol (MCP):
-- **Claude Code** (`.mcp.json`, `.claude/commands/`)
-- **Cursor** (`.cursor/mcp.json`, `.cursor/commands/`)
-- **OpenCode** (`opencode.json`, `.opencode/commands/`)
-- **VS Code / GitHub Copilot Agent mode** (`.vscode/mcp.json`, `.github/prompts/`)
-- **GitHub Copilot CLI** (`.mcp.json`)
-- **Codex CLI** (global `~/.codex/config.toml` best-effort postinstall registration)
-- **Windsurf / AntiGravity / Gemini CLI workflows** (MCP tools and prompts where configured)
+Format: `{round}-{cliTool}-{modelName}.md`
 
-See [COMPATIBILITY.md](COMPATIBILITY.md) for the full client support matrix and limitations.
-
-## CLI Tool Specific Usage
-
-### Always pass your model name
-PolyPlan saves plans using the model name in the filename (e.g., `round1-claudecode-sonnet4.6.md`). Auto-detection is not always possible, so **always pass `modelName` explicitly**:
-
-```
-Call the round_1 tool with modelName='sonnet4.6', problemDescription='...', and plan='...'
-```
-
-### OpenCode / Gemini
-OpenCode with Gemini models requires explicit tool invocation syntax. Use **"Call the tool"** instead of **"Use polyplan"**:
-
-| ❌ May not invoke the tool | ✅ Always invokes the tool |
-|---|---|
-| `Use polyplan round1 for this problem: ...` | `Call the round_1 tool with modelName='gemini2.5' and problem='...' and plan='...'` |
-| `Use polyplan to show status` | `Call the show_status tool` |
-| `Use polyplan round2` | `Call the round_2_context tool, then call round_2` |
-
-The word **"Call"** forces direct MCP tool invocation in OpenCode/Gemini instead of a natural-language response.
-
-### Claude Code
-Claude Code auto-detects as `claudecode` but does not expose the active model name via MCP. Always pass `modelName` explicitly:
-```
-/round_1 modelName=sonnet4.6 problemDescription="..." plan="..."
-```
-
-### GitHub Copilot (VS Code)
-Works with slash commands directly. Still recommended to pass `modelName`:
-```
-/round_1 with modelName='sonnet4.6' for this problem: ...
-```
+---
 
 ## Why Multi-Model Planning?
-Different models have different strengths, blind spots, and reasoning styles. Some excel at architectural structure, while others are better at catching security edge cases. By using 5+ models independently and then cross-reviewing, you catch more issues, resolve conflicts early, and produce a significantly more robust plan than any single model could produce alone.
+
+Different models have different strengths, blind spots, and reasoning styles. Some excel at architectural structure; others are better at catching security edge cases. By using multiple models independently and then cross-reviewing, you catch more issues, resolve conflicts early, and produce a significantly more robust plan than any single model could produce alone.
+
+---
 
 ## Contributing
-We welcome contributions! Please see our [CONTRIBUTING.md](CONTRIBUTING.md) for details on how to get started, run tests, and submit Pull Requests.
+
+We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details on how to get started, run tests, and submit Pull Requests.
 
 ## License
+
 [MIT](LICENSE) © 2026 PolyPlan Contributors

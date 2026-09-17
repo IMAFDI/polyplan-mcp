@@ -10,7 +10,8 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { PLANS_DIR, POLYPLAN_DIR, type PlanFileInfo, PLAN_FILENAME_REGEX, type Round } from "../types.js";
+import { PLANS_DIR, POLYPLAN_DIR, type PlanFileInfo } from "../types.js";
+import { parsePlanFilename } from "../core/plansManager.js";
 
 // ─── Prompt Definitions ──────────────────────────────────────────────────────
 
@@ -25,7 +26,70 @@ interface PromptDef {
   prompt: (args: string) => string;
 }
 
+/** Clean, scannable capability menu shown when /polyplan is invoked with no subcommand. */
+const POLYPLAN_MENU = [
+  "PolyPlan — structured multi-model planning. Here's everything it can do:",
+  "",
+  "PLANNING",
+  "  round1 <problem>   Create an independent Round 1 plan (no other models seen)",
+  "  round2             Peer-review all Round 1 plans, then write a revised plan",
+  "  final              Synthesize ALL plans into one implementable plan",
+  "",
+  "REVIEW",
+  "  status             Which models completed each round",
+  "  conflicts          Where Round 1 plans disagree",
+  "  questions          Open questions raised across plans",
+  "  agree              What every model independently agreed on",
+  "  diff <model>       What changed for one model between rounds",
+  "  summary [round]    One-paragraph summary of each plan",
+  "",
+  "MANAGE",
+  "  export             Bundle the whole session into one markdown file",
+  "  history            Full audit log",
+  "  clear              Delete plan files (requires confirmation)",
+  "",
+  "Run one with:  /polyplan <command>   e.g.  /polyplan round1 add OAuth login",
+].join("\n");
+
+/** Maps a /polyplan subcommand to the underlying MCP tool(s) the model should call. */
+const POLYPLAN_ROUTES = [
+  '- "status"            → call show_status',
+  '- "round1 <problem>"  → call round_1_context, generate the plan, then call round_1',
+  '- "round2"            → call round_2_context, generate the plan, then call round_2',
+  '- "final"             → call final_plan_context, generate the plan, then call final_plan',
+  '- "conflicts"         → call show_conflicts',
+  '- "questions"         → call show_questions',
+  '- "agree"             → call show_agree',
+  '- "diff <model>"      → call show_diff with model set to the argument',
+  '- "summary [round]"   → call show_summary (pass round if one of round1/round2/final)',
+  '- "export"            → call export_plans',
+  '- "history"           → call show_history',
+  '- "clear"             → call clear_plans (confirm with the user first; needs confirm=true)',
+].join("\n");
+
 const PROMPTS: PromptDef[] = [
+  {
+    name: "polyplan",
+    title: "PolyPlan",
+    description: "Show everything PolyPlan can do, or run a subcommand (status, round1, round2, final, conflicts, questions, agree, diff, summary, export, history, clear).",
+    hasArgs: true,
+    prompt: (args) => {
+      const sub = args === "(none)" ? "" : args.trim();
+      if (!sub) {
+        return `${POLYPLAN_MENU}
+
+Present this menu to the user clearly, then wait for them to pick a command (or run the one they already asked for). Use the PolyPlan MCP tools, not shell commands.`;
+      }
+      return `The user invoked PolyPlan with: "${sub}".
+
+Route it to the matching PolyPlan MCP tool(s) and run that workflow:
+${POLYPLAN_ROUTES}
+
+If the subcommand is unrecognized, show the PolyPlan menu instead. Use the PolyPlan MCP tools, not shell commands.
+
+${MODEL_NAME_NOTE}`;
+    },
+  },
   {
     name: "round_1",
     title: "PolyPlan Round 1",
@@ -182,11 +246,7 @@ async function listPlanFiles(projectRoot: string): Promise<PlanFileInfo[]> {
   try {
     const files = await fs.readdir(plansPath);
     return files
-      .map((f) => {
-        const m = f.match(PLAN_FILENAME_REGEX);
-        if (!m) return null;
-        return { round: m[1] as Round, cliTool: m[2], modelName: m[3], filename: f };
-      })
+      .map(parsePlanFilename)
       .filter((x): x is PlanFileInfo => x !== null);
   } catch {
     return [];

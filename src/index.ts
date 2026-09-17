@@ -58,7 +58,7 @@ async function handleInit(projectRoot: string): Promise<void> {
   console.log("  ✓ .polyplan/WORKFLOWS.md");
   console.log("  ✓ .gitignore updated");
   console.log("");
-  console.log("PolyPlan is an MCP server with 16 registered tools.");
+  console.log("PolyPlan is an MCP server with 18 registered tools.");
   console.log("All MCP-compatible CLI tools can discover them automatically.");
   console.log("");
   console.log("Start planning by asking your CLI tool:");
@@ -67,7 +67,7 @@ async function handleInit(projectRoot: string): Promise<void> {
 }
 
 async function startMcpServer(projectRoot: string): Promise<void> {
-  const server = createServer(projectRoot);
+  const server = createServer(projectRoot, pkg.version);
   const transport = new StdioServerTransport();
   await server.connect(transport);
 }

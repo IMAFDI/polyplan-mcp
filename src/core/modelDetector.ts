@@ -45,12 +45,18 @@ export function sanitizeModelName(name: string): string {
 
 /**
  * Sanitize a CLI tool name for use in filenames.
+ *
+ * Strips everything except [a-z0-9] — including hyphens and spaces — so the
+ * CLI segment of a plan filename never contains a hyphen. This keeps the
+ * first hyphen after the round as the unambiguous CLI↔model boundary
+ * (see PLAN_FILENAME_REGEX). Canonical CLI names are already hyphen-free
+ * (claudecode, opencode, antigravity, …); this also collapses unmapped
+ * names like "anti-gravity" → "antigravity".
  */
 export function sanitizeCliName(name: string): string {
   return name
     .toLowerCase()
-    .replace(/\s+/g, "-")
-    .replace(/[^a-z0-9-]/g, "");
+    .replace(/[^a-z0-9]/g, "");
 }
 
 /**
